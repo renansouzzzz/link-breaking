@@ -8,9 +8,11 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="EPPlus" Version="7.4.2" />
     <PackageReference Include="Microsoft.Identity.Client" Version="4.66.1" />
     <PackageReference Include="Microsoft.IdentityModel.Clients.ActiveDirectory" Version="5.3.0" />
-    <PackageReference Include="Microsoft.SharePointOnline.CSOM" Version="16.1.25311.12000" />
+    <PackageReference Include="Microsoft.Sharepoint.Client.Runtime" Version="15.0.4711.1000" />
+    <PackageReference Include="Microsoft.SharePointOnline.CSOM" Version="16.1.25409.12000" />
     <PackageReference Include="PnP.Framework" Version="1.17.0" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.4.0" />
   </ItemGroup>

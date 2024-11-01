@@ -4,15 +4,16 @@ namespace CallContent.Service
 {
     public class TokenAccessService
     {
-        public async Task<AuthenticationResult> GetToken()
+        private readonly string tenantId = "";
+        private readonly string appId = "";
+
+        public async Task<AuthenticationResult> GetTokenGraph()
         {
             //Env.Load("../.env");
-            string tenantId = "your tenant id";
-            string appId = "your app id";
 
             var authContext = new AuthenticationContext("https://login.microsoftonline.com/" + tenantId);
 
-            var credential = new ClientCredential(appId, "your secret id app registration <Azure AD>");
+            var credential = new ClientCredential(appId, "<app secret>");
 
             var GraphAAD_URL = string.Format("https://graph.microsoft.com/");
 

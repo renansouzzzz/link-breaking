@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "C:\\dev\\link-breaking\\api\\CallContent.csproj": {}
+    "C:\\dev\\CallContent\\CallContent.csproj": {}
   },
   "projects": {
-    "C:\\dev\\link-breaking\\api\\CallContent.csproj": {
+    "C:\\dev\\CallContent\\CallContent.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\dev\\link-breaking\\api\\CallContent.csproj",
+        "projectUniqueName": "C:\\dev\\CallContent\\CallContent.csproj",
         "projectName": "CallContent",
-        "projectPath": "C:\\dev\\link-breaking\\api\\CallContent.csproj",
+        "projectPath": "C:\\dev\\CallContent\\CallContent.csproj",
         "packagesPath": "C:\\Users\\Tnend\\.nuget\\packages\\",
-        "outputPath": "C:\\dev\\link-breaking\\api\\obj\\",
+        "outputPath": "C:\\dev\\CallContent\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
           "C:\\Users\\Tnend\\AppData\\Roaming\\NuGet\\NuGet.Config",
@@ -40,6 +40,10 @@
         "net8.0": {
           "targetAlias": "net8.0",
           "dependencies": {
+            "EPPlus": {
+              "target": "Package",
+              "version": "[7.4.2, )"
+            },
             "Microsoft.Identity.Client": {
               "target": "Package",
               "version": "[4.66.1, )"
@@ -50,7 +54,11 @@
             },
             "Microsoft.SharePointOnline.CSOM": {
               "target": "Package",
-              "version": "[16.1.25311.12000, )"
+              "version": "[16.1.25409.12000, )"
+            },
+            "Microsoft.Sharepoint.Client.Runtime": {
+              "target": "Package",
+              "version": "[15.0.4711.1000, )"
             },
             "PnP.Framework": {
               "target": "Package",

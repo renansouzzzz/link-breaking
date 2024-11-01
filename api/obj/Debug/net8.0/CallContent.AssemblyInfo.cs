@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("CallContent")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+d9a870869b2772af07b0ad46c62bf9f863c3142d")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0")]
 [assembly: System.Reflection.AssemblyProductAttribute("CallContent")]
 [assembly: System.Reflection.AssemblyTitleAttribute("CallContent")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

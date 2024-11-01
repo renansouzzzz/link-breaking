@@ -1,7 +1,9 @@
 using CallContent.Models;
 using CallContent.Service;
 using Microsoft.AspNetCore.Mvc;
-using System.Diagnostics;
+using Microsoft.Graph;
+using Newtonsoft.Json.Linq;
+using System.Collections.Generic;
 
 namespace CallContent.Controllers
 {
@@ -16,55 +18,20 @@ namespace CallContent.Controllers
             _page = page;
         }
 
-        [HttpGet(Name = "GetPages")]
-        public async Task<List<SitePage>> GetAsync()
+        [HttpGet("/get-links")]
+        public async Task<List<LinkInfo>> GetLinksAsync()
         {
-            List<SitePage> pages = await _page.ListPages("4156c839-562e-4702-b7ac-00c97ee6b4a8");
+            List<LinkInfo> links = new List<LinkInfo>();
 
-            foreach (var page in pages)
-                RunPnPScript(page.Title);
-
-            return pages;
-        }
-
-        private void RunPnPScript(string pageName)
-        {
-            pageName = pageName.Replace(" ", "-") + ".aspx";
-
-            string scriptPath = @"C:\Users\Tnend\Documents\dev-solucoes\k2m\robo-quebra-links\get-content-to-xml1.ps1";
-
-            string pwshPath = @"C:\Program Files\PowerShell\7\pwsh.exe";
-
-            ProcessStartInfo processStartInfo = new ProcessStartInfo
+            foreach (var page in _page.GetSharepointPageId().Result)
             {
-                FileName = pwshPath,
-                Arguments = $"-ExecutionPolicy Bypass -File \"{scriptPath}\" -pageName \"{pageName}\"",
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                UseShellExecute = false,
-                CreateNoWindow = true
-            };
-
-            using (Process process = new Process { StartInfo = processStartInfo })
-            {
-                process.Start();
-
-                string output = process.StandardOutput.ReadToEnd();
-                string error = process.StandardError.ReadToEnd();
-
-                process.WaitForExit();
-
-                if (!string.IsNullOrEmpty(process.StandardError.ReadToEnd()))
-                {
-                    Console.WriteLine("Erro ao executar o script PowerShell:");
-                    Console.WriteLine(error);
-                }
-                else
-                {
-                    Console.WriteLine("Script executado com sucesso:");
-                    Console.WriteLine(output);
-                }
+                var contentLinks = await _page.GetContent(page);
+                links.AddRange(contentLinks);
             }
+
+            await _page.SaveLinksToExcelAsync(links, @"C:\dev\k2m\links-quebrados.xlsx");
+
+            return links;
         }
     }
 }
