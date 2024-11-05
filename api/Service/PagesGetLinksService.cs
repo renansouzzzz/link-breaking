@@ -8,13 +8,13 @@ using OfficeOpenXml;
 
 namespace CallContent.Service
 {
-    public class PagesService
+    public class PagesGetLinksService
     {
         private readonly string _baseUrl = "https://graph.microsoft.com/beta/sites/";
         private readonly TokenAccessService _token;
 
 
-        public PagesService(TokenAccessService token)
+        public PagesGetLinksService(TokenAccessService token)
         {
             _token = token;
         }
@@ -109,7 +109,7 @@ namespace CallContent.Service
             return json;
         }
 
-        private List<LinkInfo> ExtractLinks(string innerHtml, string pageTitle, string pageConfluenceId)
+        public List<LinkInfo> ExtractLinks(string innerHtml, string pageTitle, string pageConfluenceId)
         {
             var matches = Regex.Matches(innerHtml, "<a href=\"([^\"]*)\">(.*?)</a>", RegexOptions.IgnoreCase);
 
@@ -119,7 +119,6 @@ namespace CallContent.Service
             {
                 var link = match.Groups[1].Value;
                 var name = Regex.Replace(match.Groups[2].Value, "<.*?>", "");
-
 
                 links.Add(new LinkInfo
                 {
@@ -133,7 +132,6 @@ namespace CallContent.Service
 
             return links;
         }
-
 
         public async Task SaveLinksToExcelAsync(List<LinkInfo> linkInfos, string filePath)
         {
