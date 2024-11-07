@@ -29,6 +29,8 @@ namespace CallContent.Service
 
         public async Task<List<LinkInfo>> GetContent(string sharepointPageId)
         {
+            string urlRnp = $"https://graph.microsoft.com/beta/sites/bd5c2f73-cdf8-476e-b5fd-138bc441eba2/pages/{sharepointPageId}/microsoft.graph.sitePage?expand=canvaslayout";
+
             string url = $"https://graph.microsoft.com/beta/sites/4156c839-562e-4702-b7ac-00c97ee6b4a8/pages/{sharepointPageId}/microsoft.graph.sitePage?expand=canvaslayout";
 
             JObject jObject = await SendRequestAndParseJson(url);

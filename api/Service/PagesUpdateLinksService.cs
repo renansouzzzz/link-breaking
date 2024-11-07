@@ -4,7 +4,7 @@ using Newtonsoft.Json.Linq;
 using System.Net.Http.Headers;
 using System.Net;
 using System.Text.RegularExpressions;
-using System.Collections.Generic;
+using System.Text;
 
 namespace CallContent.Service
 {
@@ -64,34 +64,15 @@ namespace CallContent.Service
 
             string pageConfluenceId = GetConfluencePageId(pageSharePointId).Result;
 
-            string innerHtml = (string)jObject["canvasLayout"]?["horizontalSections"]?[0]?["columns"]?[0]?["webparts"]?[0]?["innerHtml"]! ?? "";
+            string value = (string)jObject["canvasLayout"]?["horizontalSections"]?[0]?["columns"]?[0]?["webparts"]?[0]!["value"]?[0]! ?? "";
+
+            string innerHtml = (string)jObject["canvasLayout"]?["horizontalSections"]?[0]?["columns"]?[0]?["webparts"]?[0]!["innerHtml"]! ?? "";
 
             string pageTitle = (string)jObject["title"]!;
 
-            ExtractLinksHashtag(innerHtml, pageTitle, pageConfluenceId, webUrl);
+            ExtractLinksHashtag(value, innerHtml, pageTitle, pageConfluenceId, webUrl);
 
             return list;
-        }
-
-        public async Task<List<LinkInfo>> GetContentExtern(string sharepointPageId)
-        {
-            string url = $"https://graph.microsoft.com/beta/sites/4156c839-562e-4702-b7ac-00c97ee6b4a8/pages/{sharepointPageId}/microsoft.graph.sitePage?expand=canvaslayout";
-
-            JObject jObject = await SendRequestAndParseJson(url);
-
-            string webUrl = (string)jObject["webUrl"]!;
-
-            string pageSharePointId = GetSharepointItem(webUrl).Result!;
-
-            string pageConfluenceId = GetConfluencePageId(pageSharePointId).Result;
-
-            string innerHtml = (string)jObject["canvasLayout"]?["horizontalSections"]?[0]?["columns"]?[0]?["webparts"]?[0]?["innerHtml"]! ?? "";
-
-            string pageTitle = (string)jObject["title"]!;
-
-            var extractLinks = ExtractLinksNoHashtag(innerHtml, pageTitle, pageConfluenceId);
-
-            return extractLinks;
         }
 
         public async Task<string> GetConfluencePageId(string itemId)
@@ -105,6 +86,34 @@ namespace CallContent.Service
             return pageId;
         }
 
+        // Mudar a função: pois a coluna ID já existe no Science e não precisaremos coletar o pageId interno!!
+        public async Task<string?> GetWebUrlConfluencePageById(string pageId)
+        {
+            string baseUrl = $"{_baseUrl}4156c839-562e-4702-b7ac-00c97ee6b4a8/lists/153be7b7-ce43-4607-804f-e3773637e297/items";
+
+            JObject jObjectItems = await SendRequestAndParseJson(baseUrl);
+
+            foreach (var item in jObjectItems["value"] ?? new JArray())
+            {
+                string itemId = item["id"]?.ToString()!;
+
+                if (string.IsNullOrEmpty(itemId))
+                    continue;
+
+                string urlItem = $"{baseUrl}/{itemId}";
+                JObject itemDetails = await SendRequestAndParseJson(urlItem);
+
+                if (itemDetails["fields"]!["pageId"]!.ToString() == pageId)
+                {
+                    return itemDetails["webUrl"]?.ToString();
+                }
+            }
+
+            return null;
+        }
+
+
+
         public async Task<string?> GetSharepointItem(string webUrl)
         {
             string url = _baseUrl + "4156c839-562e-4702-b7ac-00c97ee6b4a8/lists/153be7b7-ce43-4607-804f-e3773637e297/items";
@@ -117,17 +126,24 @@ namespace CallContent.Service
             return sharepointItemId;
         }
 
-        public List<LinkInfo> ExtractLinksHashtag(string innerHtml, string pageTitle, string pageConfluenceId, string webUrl)
+        public List<LinkInfo> ExtractLinksHashtag(string value, string innerHtml, string pageTitle, string pageConfluenceId, string webUrl)
         {
             var matches = Regex.Matches(innerHtml, "<a href=\"([^\"]*)\">(.*?)</a>", RegexOptions.IgnoreCase);
 
             List<LinkInfo> listLinks = new List<LinkInfo>();
 
+            LogSuccessOrFail(matches, pageTitle, pageConfluenceId, webUrl);
+
+            return listLinks;
+        }
+
+        public static void LogSuccessOrFail(MatchCollection? matches, string pageTitle, string pageConfluenceId, string webUrl)
+        {
             string logFilePath = "LinkLog.txt";
 
             using (StreamWriter writer = new StreamWriter(logFilePath, true))
             {
-                foreach (Match match in matches)
+                foreach (Match match in matches!)
                 {
                     var link = match.Groups[1].Value;
 
@@ -149,7 +165,7 @@ namespace CallContent.Service
                     var processedLink = $"{webUrl}{link.Substring(indexHashtag)}";
                     var validName = Regex.Replace(match.Groups[2].Value, "<.*?>", "");
 
-                    //listLinks.Add(processedLink);
+
 
                     writer.WriteLine($"######### {pageTitle} #########");
                     writer.WriteLine($"Nome: {validName}");
@@ -161,8 +177,6 @@ namespace CallContent.Service
                     writer.WriteLine("");
                 }
             }
-
-            return listLinks;
         }
 
         public void ExtractExternalLinksWithPageId(string innerHtml, string pageTitle, string pageConfluenceId)
@@ -193,29 +207,129 @@ namespace CallContent.Service
             }
         }
 
-        public List<LinkInfo> ExtractLinksNoHashtag(string innerHtml, string pageTitle, string pageConfluenceId)
+        public async Task<HttpResponseMessage> UpdateSessionLinks(string sharepointPageId)
         {
-            var matches = Regex.Matches(innerHtml, "<a href=\"([^\"]*)\">(.*?)</a>", RegexOptions.IgnoreCase);
+            string url = $"https://graph.microsoft.com/beta/sites/4156c839-562e-4702-b7ac-00c97ee6b4a8/pages/{sharepointPageId}/microsoft.graph.sitePage?expand=canvaslayout";
+            JObject jObject = await SendRequestAndParseJson(url);
 
-            var links = new List<LinkInfo>();
+            string innerHtml = (string)jObject["canvasLayout"]?["horizontalSections"]?[0]?["columns"]?[0]?["webparts"]?[0]?["innerHtml"]! ?? "";
+
+            string webPartId = (string)jObject["canvasLayout"]?["horizontalSections"]?[0]?["columns"]?[0]?["webparts"]?[0]?["id"]! ?? "";
+
+            string webUrl = (string)jObject["webUrl"]!;
+
+            string pattern = @"href=""([^""]*)""";
+            Regex regex = new Regex(pattern);
+
+            var matches = regex.Matches(innerHtml);
 
             foreach (Match match in matches)
             {
-                var link = match.Groups[1].Value;
-                var name = Regex.Replace(match.Groups[2].Value, "<.*?>", "");
+                string link = match.Groups[1].Value;
 
-                if (!link.Contains("#"))
+                if (!link.Contains("#") && link.Contains("pageId=")) continue;
 
-                    links.Add(new LinkInfo
-                    {
-                        PageTitle = pageTitle,
-                        LinkTitle = name,
-                        LinkUrl = link,
-                        PageId = pageConfluenceId
-                    });
+                int indexHashtag = link.IndexOf("#");
+                string processedLink = $"{webUrl}{link.Substring(indexHashtag)}";
+
+                innerHtml = innerHtml.Replace(link, processedLink);
             }
 
-            return links;
+            var patchData = new WebPartPatch
+            {
+                ODataType = "#microsoft.graph.textWebPart",
+                id = webPartId,
+                innerHtml = innerHtml
+            };
+
+            string jsonContent = JsonConvert.SerializeObject(patchData);
+
+            var request = new HttpRequestMessage(HttpMethod.Patch, $"https://graph.microsoft.com/beta/sites/4156c839-562e-4702-b7ac-00c97ee6b4a8/pages/{sharepointPageId}/microsoft.graph.sitePage/webParts/{webPartId}")
+            {
+                Content = new StringContent(jsonContent, Encoding.UTF8, "application/json")
+            };
+
+            var token = await _token.GetTokenGraph();
+
+            HttpClient client = new HttpClient();
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token.AccessToken);
+            HttpResponseMessage response = await client.SendAsync(request);
+
+            if (response.IsSuccessStatusCode)
+            {
+                Console.WriteLine("Links atualizados com sucesso!");
+                return response;
+            }
+            else
+            {
+                Console.WriteLine($"Erro ao atualizar links: {response.ReasonPhrase}");
+                return response;
+            }
         }
+
+        public async Task<HttpResponseMessage> UpdateExternLinks(string sharepointPageId)
+        {
+            string url = $"https://graph.microsoft.com/beta/sites/4156c839-562e-4702-b7ac-00c97ee6b4a8/pages/{sharepointPageId}/microsoft.graph.sitePage?expand=canvaslayout";
+            JObject jObject = await SendRequestAndParseJson(url);
+
+            string innerHtml = (string)jObject["canvasLayout"]?["horizontalSections"]?[0]?["columns"]?[0]?["webparts"]?[0]?["innerHtml"]! ?? "";
+            string webPartId = (string)jObject["canvasLayout"]?["horizontalSections"]?[0]?["columns"]?[0]?["webparts"]?[0]?["id"]! ?? "";
+
+            string pattern = @"href=""([^""]*)""";
+            Regex regex = new Regex(pattern);
+
+            var matches = regex.Matches(innerHtml);
+
+            foreach (Match match in matches)
+            {
+                string link = match.Groups[1].Value;
+
+                string pageIdPattern = @"[?&]pageId=([^&]+)";
+                Match pageIdMatch = Regex.Match(link, pageIdPattern);
+
+                if (link.Contains("pageId=") && pageIdMatch.Success)
+                {
+                    string pageId = pageIdMatch.Groups[1].Value;
+                    var webUrlByPageId = await GetWebUrlConfluencePageById(pageId);
+
+                    string processedLink = link.Contains("#")
+                        ? $"{webUrlByPageId}{link.Substring(link.IndexOf("#"))}"
+                        : webUrlByPageId!;
+
+                    innerHtml = innerHtml.Replace(link, processedLink);
+                }
+            }
+
+            var patchData = new WebPartPatch
+            {
+                ODataType = "#microsoft.graph.textWebPart",
+                id = webPartId,
+                innerHtml = innerHtml
+            };
+
+            string jsonContent = JsonConvert.SerializeObject(patchData);
+            var request = new HttpRequestMessage(HttpMethod.Patch, $"https://graph.microsoft.com/beta/sites/4156c839-562e-4702-b7ac-00c97ee6b4a8/pages/{sharepointPageId}/microsoft.graph.sitePage/webParts/{webPartId}")
+            {
+                Content = new StringContent(jsonContent, Encoding.UTF8, "application/json")
+            };
+
+            var token = await _token.GetTokenGraph();
+
+            HttpClient client = new HttpClient();
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token.AccessToken);
+            HttpResponseMessage response = await client.SendAsync(request);
+
+            if (response.IsSuccessStatusCode)
+            {
+                Console.WriteLine("Links atualizados com sucesso!");
+                return response;
+            }
+            else
+            {
+                Console.WriteLine($"Erro ao atualizar links: {response.ReasonPhrase}");
+                return response;
+            }
+        }
+
     }
 }
